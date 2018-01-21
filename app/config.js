@@ -2,7 +2,8 @@ var path = require('path');
 var knex = require('knex')({
   client: 'sqlite3',
   connection: {
-    filename: path.join(__dirname, '../db/shortly.sqlite')
+    filename: path.join(__dirname, '../db/shortly.sqlite'),
+    database: 'shortly'
   },
   useNullAsDefault: true
 });
@@ -40,5 +41,16 @@ db.knex.schema.hasTable('clicks').then(function(exists) {
 // Add additional schema definitions below
 /************************************************************/
 
+db.knex.schema.hasTable('users').then(function(exists) {
+  if (!exists) {
+    db.knex.schema.createTable('users', function (link) {
+      link.increments('id').primary();
+      link.string('username', 255);
+      link.string('password', 255);
+    }).then(function (table) {
+      console.log('Created Table', table);
+    });
+  }
+});
 
 module.exports = db;

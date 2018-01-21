@@ -10,7 +10,7 @@
   },
   "scripts": {
     "postinstall": "curl -s https://raw.githubusercontent.com/reactorcore/pomander/master/bin/install | bash",
-    "start": "nodemon --ignore node_modules index.js",
+    "start": "nodemon --inspect --ignore node_modules index.js",
     "start:es6": "nodemon --exec babel-node --ignore node_modules index.js",
     "test": "mocha --bail --reporter nyan test/ServerSpec.js",
     "test:es6": "mocha --compilers js:babel-register --bail --reporter nyan test/ServerSpec.js",
@@ -35,7 +35,8 @@
     "babel-register": "^6.7.2",
     "chai": "^3.5.0",
     "eslint-config-hackreactor": "git://github.com/reactorcore/eslint-config-hackreactor",
-    "mocha": "^2.4.5"
+    "mocha": "^2.4.5",
+    "nodemon": "^1.14.11"
   },
   "babel": {
     "presets": [

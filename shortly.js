@@ -1,4 +1,5 @@
 var express = require('express');
+var session = require('express-session');
 var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
@@ -18,29 +19,39 @@ app.set('view engine', 'ejs');
 app.use(partials());
 // Parse JSON (uniform resource locators)
 app.use(bodyParser.json());
+
+// Set session secret
+app.use(session({secret: 'secret'}));
+
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 
-
-app.get('/', 
+var sesh;
+app.get('/',
 function(req, res) {
+  sesh = req.session;
+  if (!sesh.username) {
+    res.redirect('login');
+  } else {
+   res.render('index');
+  }
+});
+
+app.get('/create',
+function(req, res) {
+  sesh = req.session;
   res.render('index');
 });
 
-app.get('/create', 
-function(req, res) {
-  res.render('index');
-});
-
-app.get('/links', 
+app.get('/links',
 function(req, res) {
   Links.reset().fetch().then(function(links) {
     res.status(200).send(links.models);
   });
 });
 
-app.post('/links', 
+app.post('/links',
 function(req, res) {
   var uri = req.body.url;
 
@@ -76,7 +87,64 @@ function(req, res) {
 // Write your authentication routes here
 /************************************************************/
 
+app.get('/login', function(req, res) {
+  res.render('login');
+});
 
+app.post('/login', function(req, res) {
+  sesh = req.session;
+
+  new User({'username': req.body.username, 'password': req.body.password})
+  .fetch()
+  .then(function(user) {
+    console.log('USER in then promise within post request to login =', user);
+    if (!user) {
+      res.redirect('login');
+    } else {
+      res.render('index');
+    }
+  });
+
+  sesh.username = req.body.username;
+});
+
+app.get('/signup', function(req, res) {
+  res.render('signup');
+});
+
+app.post('/signup', function(req, res) {
+  sesh = req.session;
+
+  var newUser = new User({'username': req.body.username, 'password': req.body.password});
+
+  debugger;
+  newUser.save().then(function(user) {
+    Users.create({
+      username: user.username,
+      password: user.password
+    })
+    debugger;
+    console.log("ORDER:  IN newUser.save()!!!!!!!!!!!!!!!!!!!!!!");
+    return res.redirect('/index');
+  });
+  // new User({username: req.body.username}).fetch().then(function(user) {
+  //   if (user) {
+  //     console.log('Signup: User already exists');
+  //     res.render('signup');
+  //   } else {
+  //     // call a function to hash the password
+  //     Users.create({
+  //       username: req.body.username
+  //       password: this.hash(req.body.password)
+  //     })
+  //     .then(function(newUser) {
+  //       console.log("SHORTLY line 134")
+  //       console.log(newUser);
+
+  //     })
+  //   }
+  // })
+});
 
 /************************************************************/
 // Handle the wildcard route last - if all other routes fail
