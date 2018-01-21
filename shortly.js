@@ -21,17 +21,21 @@ app.use(partials());
 app.use(bodyParser.json());
 
 // Set session secret
-app.use(session({secret: 'secret'}));
+app.use(session({
+  secret: 'secret',
+  cookie: {
+    maxAge: 10000
+  }
+}));
 
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 
-var sesh;
 app.get('/',
 function(req, res) {
-  sesh = req.session;
-  if (!sesh.username) {
+  console.log("get to / req.session.username =", req.session.username)
+  if (!req.session.username) {
     res.redirect('login');
   } else {
    res.render('index');
@@ -88,24 +92,22 @@ function(req, res) {
 /************************************************************/
 
 app.get('/login', function(req, res) {
+  console.log("get to /login req.session.username =", req.session.username)
   res.render('login');
 });
 
 app.post('/login', function(req, res) {
-  sesh = req.session;
 
-  new User({'username': req.body.username, 'password': req.body.password})
-  .fetch()
-  .then(function(user) {
-    console.log('USER in then promise within post request to login =', user);
-    if (!user) {
-      res.redirect('login');
+
+  User.login(req.body.username, req.body.password).then(function(result) {
+    if (result) {
+      res.redirect('index');
     } else {
-      res.render('index');
+      res.redirect('signup');
     }
-  });
-
-  sesh.username = req.body.username;
+  })
+  console.log("post to /login req.session.username =", req.session.username)
+  req.session.username = req.body.username;
 });
 
 app.get('/signup', function(req, res) {
@@ -113,37 +115,17 @@ app.get('/signup', function(req, res) {
 });
 
 app.post('/signup', function(req, res) {
-  sesh = req.session;
 
   var newUser = new User({'username': req.body.username, 'password': req.body.password});
 
-  debugger;
   newUser.save().then(function(user) {
-    Users.create({
-      username: user.username,
-      password: user.password
-    })
-    debugger;
-    console.log("ORDER:  IN newUser.save()!!!!!!!!!!!!!!!!!!!!!!");
+    // Users.create({
+    //   username: user.username,
+    //   password: user.password
+    // })
+    req.session.username = req.body.username;
     return res.redirect('/index');
   });
-  // new User({username: req.body.username}).fetch().then(function(user) {
-  //   if (user) {
-  //     console.log('Signup: User already exists');
-  //     res.render('signup');
-  //   } else {
-  //     // call a function to hash the password
-  //     Users.create({
-  //       username: req.body.username
-  //       password: this.hash(req.body.password)
-  //     })
-  //     .then(function(newUser) {
-  //       console.log("SHORTLY line 134")
-  //       console.log(newUser);
-
-  //     })
-  //   }
-  // })
 });
 
 /************************************************************/
