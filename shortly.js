@@ -22,11 +22,13 @@ app.use(bodyParser.json());
 
 // Set session secret
 app.use(session({
+  resave: true,
+  saveUninitialized: true,
   secret: 'secret',
-  cookie: {
-    maxAge: 10000
-  }
+  cookie: { maxAge: 600000 }
 }));
+
+
 
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -34,7 +36,6 @@ app.use(express.static(__dirname + '/public'));
 
 app.get('/',
 function(req, res) {
-  console.log("get to / req.session.username =", req.session.username)
   if (!req.session.username) {
     res.redirect('login');
   } else {
@@ -44,47 +45,60 @@ function(req, res) {
 
 app.get('/create',
 function(req, res) {
-  sesh = req.session;
-  res.render('index');
+  if (!req.session.username) {
+    res.redirect('login');
+  } else {
+   res.render('index');
+  }
 });
 
 app.get('/links',
 function(req, res) {
-  Links.reset().fetch().then(function(links) {
-    res.status(200).send(links.models);
-  });
+
+  if (!req.session.username) {
+    res.redirect('login');
+  } else {
+    Links.reset().fetch().then(function(links) {
+      res.status(200).send(links.models);
+    });
+  }
 });
 
 app.post('/links',
 function(req, res) {
-  var uri = req.body.url;
 
-  if (!util.isValidUrl(uri)) {
-    console.log('Not a valid url: ', uri);
-    return res.sendStatus(404);
-  }
+  // if (!req.session.username) {
+  //   res.redirect('login');
+  // } else {
+    var uri = req.body.url;
 
-  new Link({ url: uri }).fetch().then(function(found) {
-    if (found) {
-      res.status(200).send(found.attributes);
-    } else {
-      util.getUrlTitle(uri, function(err, title) {
-        if (err) {
-          console.log('Error reading URL heading: ', err);
-          return res.sendStatus(404);
-        }
-
-        Links.create({
-          url: uri,
-          title: title,
-          baseUrl: req.headers.origin
-        })
-        .then(function(newLink) {
-          res.status(200).send(newLink);
-        });
-      });
+    if (!util.isValidUrl(uri)) {
+      console.log('Not a valid url: ', uri);
+      return res.sendStatus(404);
     }
-  });
+
+    new Link({ url: uri }).fetch().then(function(found) {
+      if (found) {
+        res.status(200).send(found.attributes);
+      } else {
+        util.getUrlTitle(uri, function(err, title) {
+          if (err) {
+            console.log('Error reading URL heading: ', err);
+            return res.sendStatus(404);
+          }
+
+          Links.create({
+            url: uri,
+            title: title,
+            baseUrl: req.headers.origin
+          })
+          .then(function(newLink) {
+            res.status(200).send(newLink);
+          });
+        });
+      }
+    });
+  // }
 });
 
 /************************************************************/
@@ -92,22 +106,26 @@ function(req, res) {
 /************************************************************/
 
 app.get('/login', function(req, res) {
-  console.log("get to /login req.session.username =", req.session.username)
-  res.render('login');
+  if (!req.session.username) {
+    res.render('login');
+  } else {
+    res.redirect('/')
+  }
 });
 
 app.post('/login', function(req, res) {
 
-
   User.login(req.body.username, req.body.password).then(function(result) {
     if (result) {
-      res.redirect('index');
+      req.session.regenerate(function(err) {
+        if (err) { throw err; }
+      });
+      req.session.username = req.body.username;
+      res.redirect('/');
     } else {
-      res.redirect('signup');
+      res.redirect('/login');
     }
   })
-  console.log("post to /login req.session.username =", req.session.username)
-  req.session.username = req.body.username;
 });
 
 app.get('/signup', function(req, res) {
@@ -119,13 +137,16 @@ app.post('/signup', function(req, res) {
   var newUser = new User({'username': req.body.username, 'password': req.body.password});
 
   newUser.save().then(function(user) {
-    // Users.create({
-    //   username: user.username,
-    //   password: user.password
-    // })
     req.session.username = req.body.username;
-    return res.redirect('/index');
+    return res.redirect('/');
   });
+});
+
+app.get('/logout', function(req, res) {
+  req.session.destroy(function(err) {
+    if (err) { throw err; }
+  });
+  res.redirect('login');
 });
 
 /************************************************************/

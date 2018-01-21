@@ -12,7 +12,6 @@ var User = db.Model.extend({
     return new Promise(function(resolve, reject) {
       bcrypt.hash(model.attributes.password, null, null, function(err, hash) {
         if (err) {
-          console.log("ERROR IN hash =", err)
           reject(err);
         }
         model.set('password', hash);
@@ -27,9 +26,13 @@ var User = db.Model.extend({
       if (!username || !password) {
         throw new Error('Username and password are both required');
       }
-      return new this({username: username.toLowerCase().trim()}).fetch({require: true}).tap(function(user) {
+      return new this({username: username}).fetch({require: true}).tap(function(user) {
         return bcrypt.compareSync(password, hash);
-      });
+      })
+      .then()
+      .catch(function() {
+        console.log("error getting user")
+      })
     })
   }
 );
