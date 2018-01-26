@@ -53,4 +53,16 @@ db.knex.schema.hasTable('users').then(function(exists) {
   }
 });
 
+db.knex.schema.hasTable('urls_users').then(function(exists) {
+  if (!exists) {
+    db.knex.schema.createTable('urls_users', function(join) {
+      join.increments('id').primary();
+      join.integer('user_id').references('users.id');
+      join.integer('url_id').references('urls.id');
+    }).then(function(table) {
+      console.log('Created Table', table);
+    })
+  }
+});
+
 module.exports = db;

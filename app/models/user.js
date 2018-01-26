@@ -1,10 +1,14 @@
 var db = require('../config');
 var bcrypt = require('bcrypt-nodejs');
 var Promise = require('bluebird');
+var Link = require('./link');
 
 
 var User = db.Model.extend({
   tableName: 'users',
+  urls: function() {
+    return this.belongsToMany(Link, 'urls_users');
+  },
   initialize: function() {
     this.on('creating', this.hash, this);
   },
@@ -33,7 +37,10 @@ var User = db.Model.extend({
       .catch(function() {
         console.log("error getting user")
       })
-    })
+    }),
+    validPassword: function(plainPassword, userPassword) {
+      return bcrypt.compareSync(plainPassword, userPassword);
+    }
   }
 );
 

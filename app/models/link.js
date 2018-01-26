@@ -1,9 +1,14 @@
 var db = require('../config');
 var Click = require('./click');
 var crypto = require('crypto');
+var User = require('./user');
 
 var Link = db.Model.extend({
   tableName: 'urls',
+  users: function() {
+    // return this.belongsToMany(User, 'urls_users');
+    return this.belongsToMany(User, 'id').withPivot(['user_id']);
+  },
   hasTimestamps: true,
   defaults: {
     visits: 0
